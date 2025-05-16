@@ -36,7 +36,7 @@ jobs:
             libsqlite3-dev \
             libssl-dev
 
-    -- name: Install Android SDK and Build Tools
+    - name: Install Android SDK and Build Tools
       run: |
         mkdir -p /home/runner/.buildozer/android/platform/android-sdk
         chmod -R 777 /home/runner/.buildozer
