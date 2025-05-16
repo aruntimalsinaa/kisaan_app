@@ -21,6 +21,7 @@ jobs:
           sudo apt-get install -y \
             git \
             unzip \
+            wget \
             openjdk-17-jdk \
             python3-pip \
             autoconf \
@@ -39,6 +40,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install buildozer cython==0.29.33 virtualenv
+
+      - name: Create Buildozer directories
+        run: |
+          mkdir -p ~/.buildozer/android/platform
 
       - name: Install Android SDK
         run: |
@@ -65,8 +70,8 @@ jobs:
       - name: Install Android NDK
         run: |
           wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+          mkdir -p ~/.buildozer/android/platform
           unzip -q android-ndk-r25b-linux.zip -d ~/.buildozer/android/platform/
-          # Verify NDK structure
           ls -la ~/.buildozer/android/platform/android-ndk-r25b
 
       - name: Configure Buildozer environment
@@ -78,8 +83,9 @@ jobs:
           ln -sf ~/.android/build-tools/33.0.2 ~/.buildozer/android/platform/android-sdk/build-tools
           ln -sf ~/.android/platforms ~/.buildozer/android/platform/android-sdk/platforms
           
-          # Verify SDK tools
+          # Verify tools
           ls -la ~/.buildozer/android/platform/android-sdk/build-tools/33.0.2/aidl
+          ~/.buildozer/android/platform/android-ndk-r25b/ndk-build --version
 
       - name: Set environment variables
         run: |
