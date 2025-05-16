@@ -63,22 +63,29 @@ jobs:
             "platforms;android-33" \
             "ndk;25.2.9519653"
           
+          # Verify installation
+          ~/.android/cmdline-tools/latest/build-tools/33.0.2/aidl --help > /dev/null || echo "AIDL verification failed"
+          
           # Set environment variables
           echo "ANDROID_HOME=~/.android" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=~/.android" >> $GITHUB_ENV
           echo "PATH=${PATH}:~/.android/cmdline-tools/latest:~/.android/cmdline-tools/latest/bin:~/.android/platform-tools:~/.android/build-tools/33.0.2" >> $GITHUB_ENV
 
-      - name: Verify Android tools
+      - name: Configure Buildozer environment
         run: |
-          ls -la ~/.android/build-tools/33.0.2/
-          ~/.android/build-tools/33.0.2/aidl --version
-
-      - name: Build APK
-        run: |
-          # Create symlink for Buildozer
+          # Create symlink structure that Buildozer expects
           mkdir -p ~/.buildozer/android/platform
           ln -sf ~/.android ~/.buildozer/android/platform/android-sdk
           
+          # Verify Buildozer can find the SDK
+          buildozer android debug 2>&1 | grep "Android SDK" || echo "SDK detection failed"
+
+      - name: Build APK
+        run: |
+          # Clean any previous builds
+          rm -rf .buildozer/android/platform/build-*
+          
+          # Run build with debug output
           buildozer -v android debug
         env:
           P4A_RELEASE_KEYSTORE: ${{ secrets.P4A_RELEASE_KEYSTORE }}
@@ -88,6 +95,7 @@ jobs:
           ANDROID_SDK_ROOT: ~/.android
 
       - name: Upload APK artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: kisaan-app-apk
