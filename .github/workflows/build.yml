@@ -78,20 +78,13 @@ jobs:
           name: kisaan-app-apk
           path: bin/*.apk
 
-      - name: Create GitHub Release
-        id: create_release
+      - name: Create GitHub Release & Upload APK
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: kisaan-app v1.0.${{ github.run_number }}
+          files: bin/*.apk
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload APK to GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: bin/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
