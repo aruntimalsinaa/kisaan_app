@@ -5,10 +5,33 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Changed from ubuntu-20.04 to ubuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4  # Updated from v2 to v4
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'  # Python version compatible with Buildozer
+
+      - name: Install Buildozer dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-pip \
+            git \
+            unzip \
+            openjdk-17-jdk \
+            zlib1g-dev \
+            libncurses5-dev \
+            libbz2-dev \
+            libffi-dev \
+            liblzma-dev \
+            libsqlite3-dev
+
+      - name: Install Buildozer
+        run: pip install buildozer
 
       - name: Get Date
         id: get-date
@@ -16,26 +39,27 @@ jobs:
           echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
 
       - name: Cache Buildozer global directory
-        uses: actions/cache@v3  # Updated from v2 to v3
+        uses: actions/cache@v3
         with:
           path: .buildozer_global
           key: buildozer-global-${{ hashFiles('buildozer.spec') }}
 
       - name: Cache Buildozer directory
-        uses: actions/cache@v3  # Updated from v2 to v3
+        uses: actions/cache@v3
         with:
           path: .buildozer
           key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('buildozer.spec') }}
 
       - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          command: buildozer android debug
-          buildozer_version: stable
+        run: buildozer android debug
+        env:
+          P4A_RELEASE_KEYSTORE: ${{ secrets.P4A_RELEASE_KEYSTORE }}
+          P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.P4A_RELEASE_KEYSTORE_PASSWD }}
+          P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.P4A_RELEASE_KEYALIAS_PASSWD }}
+          P4A_RELEASE_KEYALIAS: ${{ secrets.P4A_RELEASE_KEYALIAS }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4  # Updated from v2 to v4
+        uses: actions/upload-artifact@v4
         with:
           name: package
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: bin/  # Adjust this path to match your actual APK output location
