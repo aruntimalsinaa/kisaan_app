@@ -1,4 +1,4 @@
-name: CI
+name: Android CI Build
 on:
   push:
     branches: [ main ]
@@ -40,7 +40,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install buildozer cython==0.29.33 virtualenv
 
-      - name: Install Android SDK with proper components
+      - name: Install Android SDK
         run: |
           mkdir -p ~/.android
           touch ~/.android/repositories.cfg
@@ -56,46 +56,41 @@ jobs:
           # Accept licenses
           yes | ~/.android/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           
-          # Install specific working versions
+          # Install required components
           ~/.android/cmdline-tools/latest/bin/sdkmanager --install \
             "platform-tools" \
             "build-tools;33.0.2" \
-            "platforms;android-33" \
-            "ndk;25.2.9519653"
-          
-          # Set environment variables
-          echo "ANDROID_HOME=~/.android" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=~/.android" >> $GITHUB_ENV
-          echo "PATH=${PATH}:~/.android/cmdline-tools/latest:~/.android/cmdline-tools/latest/bin:~/.android/platform-tools:~/.android/build-tools/33.0.2" >> $GITHUB_ENV
+            "platforms;android-33"
+
+      - name: Install Android NDK
+        run: |
+          wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+          unzip -q android-ndk-r25b-linux.zip -d ~/.buildozer/android/platform/
+          # Verify NDK structure
+          ls -la ~/.buildozer/android/platform/android-ndk-r25b
 
       - name: Configure Buildozer environment
         run: |
-          # Create full SDK structure that Buildozer expects
+          # Create SDK symlinks
           mkdir -p ~/.buildozer/android/platform/android-sdk
           ln -sf ~/.android/cmdline-tools/latest ~/.buildozer/android/platform/android-sdk/tools
           ln -sf ~/.android/platform-tools ~/.buildozer/android/platform/android-sdk/platform-tools
-          ln -sf ~/.android/build-tools ~/.buildozer/android/platform/android-sdk/build-tools
+          ln -sf ~/.android/build-tools/33.0.2 ~/.buildozer/android/platform/android-sdk/build-tools
           ln -sf ~/.android/platforms ~/.buildozer/android/platform/android-sdk/platforms
           
-          # Install required NDK version
-          wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
-          unzip -q android-ndk-r25b-linux.zip -d ~/.buildozer/android/platform/
-          mv ~/.buildozer/android/platform/android-ndk-r25b ~/.buildozer/android/platform/android-ndk-r25b
+          # Verify SDK tools
+          ls -la ~/.buildozer/android/platform/android-sdk/build-tools/33.0.2/aidl
 
-      - name: Verify environment
+      - name: Set environment variables
         run: |
-          # Check SDK tools
-          ls -la ~/.buildozer/android/platform/android-sdk/tools/bin/
-          
-          # Check NDK installation
-          ls -la ~/.buildozer/android/platform/android-ndk-r25b
-          
-          # Check build tools
-          ls -la ~/.buildozer/android/platform/android-sdk/build-tools/33.0.2/
+          echo "ANDROID_HOME=~/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=~/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=~/.buildozer/android/platform/android-ndk-r25b" >> $GITHUB_ENV
+          echo "PATH=${PATH}:~/.buildozer/android/platform/android-sdk/platform-tools:~/.buildozer/android/platform/android-sdk/build-tools/33.0.2" >> $GITHUB_ENV
 
       - name: Build APK
         run: |
-          # Clean any previous builds
+          # Clean previous builds
           rm -rf .buildozer/android/platform/build-*
           
           # Run build with debug output
@@ -105,8 +100,6 @@ jobs:
           P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.P4A_RELEASE_KEYSTORE_PASSWD }}
           P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.P4A_RELEASE_KEYALIAS_PASSWD }}
           P4A_RELEASE_KEYALIAS: ${{ secrets.P4A_RELEASE_KEYALIAS }}
-          ANDROID_SDK_ROOT: ~/.buildozer/android/platform/android-sdk
-          ANDROID_NDK_HOME: ~/.buildozer/android/platform/android-ndk-r25b
 
       - name: Upload APK artifact
         if: success()
