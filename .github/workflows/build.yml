@@ -43,9 +43,8 @@ jobs:
           cd /home/runner/.buildozer/android/platform/android-sdk
           curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip sdk-tools.zip -d cmdline-tools
-          mkdir -p cmdline-tools/latest
-          find cmdline-tools -mindepth 1 -maxdepth 1 ! -name 'latest' -exec mv {} cmdline-tools/latest/ \;
-          yes | ./cmdline-tools/latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk "build-tools;34.0.0" "platforms;android-34"
+          mv cmdline-tools/cmdline-tools cmdline-tools/latest
+          yes | cmdline-tools/latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk "build-tools;34.0.0" "platforms;android-34"
 
       - name: Install Buildozer and dependencies
         run: |
