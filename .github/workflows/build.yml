@@ -6,60 +6,56 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'  # Python version compatible with Buildozer
+          python-version: '3.9'
 
-      - name: Install Buildozer dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            python3-pip \
             git \
             unzip \
             openjdk-17-jdk \
+            python3-pip \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
             zlib1g-dev \
             libncurses5-dev \
             libbz2-dev \
             libffi-dev \
             liblzma-dev \
-            libsqlite3-dev
+            libsqlite3-dev \
+            libssl-dev
 
-      - name: Install Buildozer
-        run: pip install buildozer
-
-      - name: Get Date
-        id: get-date
+      - name: Install Buildozer and dependencies
         run: |
-          echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
+          python -m pip install --upgrade pip
+          pip install buildozer cython==0.29.33 virtualenv
 
-      - name: Cache Buildozer global directory
-        uses: actions/cache@v3
-        with:
-          path: .buildozer_global
-          key: buildozer-global-${{ hashFiles('buildozer.spec') }}
+      - name: Set up Buildozer
+        run: |
+          buildozer init
+          # Uncomment and modify if you need to edit the spec file
+          # sed -i 's/#android.release_artifact = .*/android.release_artifact = .apk/' buildozer.spec
 
-      - name: Cache Buildozer directory
-        uses: actions/cache@v3
-        with:
-          path: .buildozer
-          key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('buildozer.spec') }}
-
-      - name: Build with Buildozer
-        run: buildozer android debug
+      - name: Build APK
+        run: buildozer -v android debug
         env:
           P4A_RELEASE_KEYSTORE: ${{ secrets.P4A_RELEASE_KEYSTORE }}
           P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.P4A_RELEASE_KEYSTORE_PASSWD }}
           P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.P4A_RELEASE_KEYALIAS_PASSWD }}
           P4A_RELEASE_KEYALIAS: ${{ secrets.P4A_RELEASE_KEYALIAS }}
 
-      - name: Upload artifacts
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: package
-          path: bin/  # Adjust this path to match your actual APK output location
+          name: kisaan-app-apk
+          path: bin/*.apk
