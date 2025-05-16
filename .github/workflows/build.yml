@@ -1,4 +1,4 @@
-name: Android CI Build
+name: CI
 on:
   push:
     branches: [ main ]
@@ -21,7 +21,6 @@ jobs:
           sudo apt-get install -y \
             git \
             unzip \
-            wget \
             openjdk-17-jdk \
             python3-pip \
             autoconf \
@@ -36,78 +35,30 @@ jobs:
             libsqlite3-dev \
             libssl-dev
 
+      - name: Install Android SDK and Build Tools
+        run: |
+          sudo mkdir -p /home/runner/.buildozer/android/platform/android-sdk
+          cd /home/runner/.buildozer/android/platform/android-sdk
+          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          unzip sdk-tools.zip -d cmdline-tools
+          mv cmdline-tools/cmdline-tools cmdline-tools/latest
+          yes | ./cmdline-tools/latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk "build-tools;34.0.0" "platforms;android-34"
+
       - name: Install Buildozer and dependencies
         run: |
           python -m pip install --upgrade pip
           pip install buildozer cython==0.29.33 virtualenv
 
-      - name: Create Buildozer directories
+      - name: Verify buildozer.spec
         run: |
-          mkdir -p ~/.buildozer/android/platform
-
-      - name: Install Android SDK
-        run: |
-          mkdir -p ~/.android
-          touch ~/.android/repositories.cfg
-          
-          # Download and extract command line tools
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip -q commandlinetools-linux-*.zip -d ~/.android/
-          mv ~/.android/cmdline-tools ~/.android/cmdline-tools-temp
-          mkdir -p ~/.android/cmdline-tools/latest
-          mv ~/.android/cmdline-tools-temp/* ~/.android/cmdline-tools/latest/
-          rm -r ~/.android/cmdline-tools-temp
-          
-          # Accept licenses
-          yes | ~/.android/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
-          
-          # Install required components (with retry logic)
-          ~/.android/cmdline-tools/latest/bin/sdkmanager --install \
-            "platform-tools" \
-            "build-tools;33.0.2" \
-            "platforms;android-33" \
-            || ~/.android/cmdline-tools/latest/bin/sdkmanager --install \
-            "platform-tools" \
-            "build-tools;33.0.2" \
-            "platforms;android-33"
-
-          # Verify build-tools installation
-          ls -la ~/.android/build-tools/33.0.2/
-
-      - name: Install Android NDK
-        run: |
-          wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
-          mkdir -p ~/.buildozer/android/platform
-          unzip -q android-ndk-r25b-linux.zip -d ~/.buildozer/android/platform/
-          ls -la ~/.buildozer/android/platform/android-ndk-r25b
-
-      - name: Configure Buildozer environment
-        run: |
-          # Create direct copies instead of symlinks for better reliability
-          mkdir -p ~/.buildozer/android/platform/android-sdk
-          cp -r ~/.android/cmdline-tools/latest ~/.buildozer/android/platform/android-sdk/tools
-          cp -r ~/.android/platform-tools ~/.buildozer/android/platform/android-sdk/platform-tools
-          cp -r ~/.android/build-tools/33.0.2 ~/.buildozer/android/platform/android-sdk/build-tools
-          cp -r ~/.android/platforms ~/.buildozer/android/platform/android-sdk/platforms
-          
-          # Verify tools are accessible
-          ~/.buildozer/android/platform/android-sdk/build-tools/33.0.2/aidl --version
-          ~/.buildozer/android/platform/android-ndk-r25b/ndk-build --version
-
-      - name: Set environment variables
-        run: |
-          echo "ANDROID_HOME=~/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=~/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=~/.buildozer/android/platform/android-ndk-r25b" >> $GITHUB_ENV
-          echo "PATH=${PATH}:~/.buildozer/android/platform/android-sdk/platform-tools:~/.buildozer/android/platform/android-sdk/build-tools/33.0.2" >> $GITHUB_ENV
+          if [ ! -f buildozer.spec ]; then
+            buildozer init
+          else
+            echo "Using existing buildozer.spec file"
+          fi
 
       - name: Build APK
-        run: |
-          # Clean previous builds
-          rm -rf .buildozer/android/platform/build-*
-          
-          # Run build with debug output
-          buildozer -v android debug
+        run: buildozer -v android debug
         env:
           P4A_RELEASE_KEYSTORE: ${{ secrets.P4A_RELEASE_KEYSTORE }}
           P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.P4A_RELEASE_KEYSTORE_PASSWD }}
@@ -115,7 +66,6 @@ jobs:
           P4A_RELEASE_KEYALIAS: ${{ secrets.P4A_RELEASE_KEYALIAS }}
 
       - name: Upload APK artifact
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: kisaan-app-apk
