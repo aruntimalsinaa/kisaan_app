@@ -5,25 +5,24 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest  # Changed from ubuntu-20.04 to ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4  # Updated from v2 to v4
 
       - name: Get Date
         id: get-date
         run: |
           echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
-        shell: bash
 
       - name: Cache Buildozer global directory
-        uses: actions/cache@v2
+        uses: actions/cache@v3  # Updated from v2 to v3
         with:
           path: .buildozer_global
           key: buildozer-global-${{ hashFiles('buildozer.spec') }}
 
       - name: Cache Buildozer directory
-        uses: actions/cache@v2
+        uses: actions/cache@v3  # Updated from v2 to v3
         with:
           path: .buildozer
           key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('buildozer.spec') }}
@@ -36,7 +35,7 @@ jobs:
           buildozer_version: stable
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4  # Updated from v2 to v4
         with:
           name: package
           path: ${{ steps.buildozer.outputs.filename }}
