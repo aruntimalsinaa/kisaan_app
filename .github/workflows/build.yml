@@ -61,11 +61,18 @@ jobs:
           # Accept licenses
           yes | ~/.android/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           
-          # Install required components
+          # Install required components (with retry logic)
           ~/.android/cmdline-tools/latest/bin/sdkmanager --install \
             "platform-tools" \
             "build-tools;33.0.2" \
+            "platforms;android-33" \
+            || ~/.android/cmdline-tools/latest/bin/sdkmanager --install \
+            "platform-tools" \
+            "build-tools;33.0.2" \
             "platforms;android-33"
+
+          # Verify build-tools installation
+          ls -la ~/.android/build-tools/33.0.2/
 
       - name: Install Android NDK
         run: |
@@ -76,15 +83,15 @@ jobs:
 
       - name: Configure Buildozer environment
         run: |
-          # Create SDK symlinks
+          # Create direct copies instead of symlinks for better reliability
           mkdir -p ~/.buildozer/android/platform/android-sdk
-          ln -sf ~/.android/cmdline-tools/latest ~/.buildozer/android/platform/android-sdk/tools
-          ln -sf ~/.android/platform-tools ~/.buildozer/android/platform/android-sdk/platform-tools
-          ln -sf ~/.android/build-tools/33.0.2 ~/.buildozer/android/platform/android-sdk/build-tools
-          ln -sf ~/.android/platforms ~/.buildozer/android/platform/android-sdk/platforms
+          cp -r ~/.android/cmdline-tools/latest ~/.buildozer/android/platform/android-sdk/tools
+          cp -r ~/.android/platform-tools ~/.buildozer/android/platform/android-sdk/platform-tools
+          cp -r ~/.android/build-tools/33.0.2 ~/.buildozer/android/platform/android-sdk/build-tools
+          cp -r ~/.android/platforms ~/.buildozer/android/platform/android-sdk/platforms
           
-          # Verify tools
-          ls -la ~/.buildozer/android/platform/android-sdk/build-tools/33.0.2/aidl
+          # Verify tools are accessible
+          ~/.buildozer/android/platform/android-sdk/build-tools/33.0.2/aidl --version
           ~/.buildozer/android/platform/android-ndk-r25b/ndk-build --version
 
       - name: Set environment variables
