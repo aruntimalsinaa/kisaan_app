@@ -46,4 +46,30 @@ jobs:
             $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=${HOME}/android-sdk \
               "platform-tools" "build-tools;33.0.2" "platforms;android-33" "cmdline-tools;latest"
 
-            yes | $HOM
+            yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+          fi
+
+          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install cython buildozer
+
+      - name: Build APK using Buildozer
+        run: buildozer android debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kivy-apk
+          path: bin/*.apk
+
+      - name: Create GitHub Release and Upload APK
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bin/*.apk
