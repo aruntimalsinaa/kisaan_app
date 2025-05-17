@@ -1,11 +1,20 @@
-# (int) Target Android API, should be as high as possible.
-android.api = 34
 
-# (int) Minimum API your APK / AAB will support.
+
+[app]
+.
+android.api = 34
 android.minapi = 21
 
-# (int) Android SDK version to use
+
+
 android.sdk = 34
 
-# (str) Android NDK version to use
+
+android.minapi = 21
+
+
 android.ndk = 25b
+android.sdk = 34
+
+
+
