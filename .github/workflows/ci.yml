@@ -1,15 +1,17 @@
-name: CI
+name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
@@ -20,70 +22,27 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            git \
-            unzip \
-            openjdk-17-jdk \
-            python3-pip \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libbz2-dev \
-            libffi-dev \
-            liblzma-dev \
-            libsqlite3-dev \
-            libssl-dev
+            git unzip openjdk-17-jdk python3-pip autoconf automake libtool pkg-config \
+            zlib1g-dev libncurses5-dev libbz2-dev libffi-dev liblzma-dev libsqlite3-dev libssl-dev
 
       - name: Install Android SDK and Build Tools
         run: |
-          mkdir -p /home/runner/.buildozer/android/platform/android-sdk/cmdline-tools
-          cd /home/runner/.buildozer/android/platform/android-sdk/cmdline-tools
-          curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip commandlinetools.zip -d latest
-          export PATH=$PATH:/home/runner/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin
-          yes | sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk \
-            "build-tools;34.0.0" "platforms;android-34"
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk
+          cd $HOME/.buildozer/android/platform/android-sdk
+          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          unzip sdk-tools.zip -d cmdline-tools
+          if [ -d cmdline-tools/cmdline-tools ]; then
+            mv cmdline-tools/cmdline-tools cmdline-tools/latest
+          else
+            mv cmdline-tools/tools cmdline-tools/latest
+          fi
+          yes | cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk "build-tools;34.0.0" "platforms;android-34"
 
       - name: Install Buildozer and dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install buildozer cython==0.29.33 virtualenv
-
-      - name: Verify buildozer.spec
-        run: |
-          if [ ! -f buildozer.spec ]; then
-            buildozer init
-          else
-            echo "Using existing buildozer.spec"
-          fi
+          python3 -m pip install --upgrade pip
+          python3 -m pip install buildozer cython
 
       - name: Build APK
-        run: buildozer -v android debug
-        env:
-          P4A_RELEASE_KEYSTORE: ${{ secrets.P4A_RELEASE_KEYSTORE }}
-          P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.P4A_RELEASE_KEYSTORE_PASSWD }}
-          P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.P4A_RELEASE_KEYALIAS_PASSWD }}
-          P4A_RELEASE_KEYALIAS: ${{ secrets.P4A_RELEASE_KEYALIAS }}
-
-      - name: Debug APK existence
-        run: ls -lh bin/
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: kisaan-app v1.0.${{ github.run_number }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload APK to GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: bin/*.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          buildozer android debug
