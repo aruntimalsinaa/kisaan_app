@@ -1,6 +1,7 @@
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.spinner import Spinner
+from kivy.uix.button import Button
 import openpyxl
 import os
 
@@ -24,7 +25,7 @@ class KisaanApp(App):
         try:
             wb = openpyxl.load_workbook(f"{base}/Management/kisaan.xlsx")
             clients = [wb.active.cell(row=i, column=1).value 
-                      for i in range(2, wb.active.max_row+1)]
+                      for i in range(2, wb.active.max_row + 1)]
             wb.close()
             
             os.makedirs(f"{base}/{month}", exist_ok=True)
@@ -35,6 +36,7 @@ class KisaanApp(App):
                     wb.active['E2'] = client
                     wb.active['E3'] = month
                     wb.save(f"{base}/{month}/{client}.xlsx")
+                    wb.close()
             
             print(f"✓ Generated {len(clients)} files in 2080/{month}")
         except Exception as e:
