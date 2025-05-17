@@ -1,61 +1,39 @@
-name: CI
-
 on:
+
   push:
+
     branches: [ main ]
 
+
+
 jobs:
+
   build:
-    runs-on: ubuntu-latest
+
+    runs-on: ubuntu-22.04
 
     steps:
+
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            git \
-            unzip \
-            openjdk-17-jdk \
-            python3-pip \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libbz2-dev \
-            libffi-dev \
-            liblzma-dev \
-            libsqlite3-dev \
-            libssl-dev
-
-      - name: Install Android SDK and Build Tools
-        run: |
-          # Set up base directory
-          export ANDROID_SDK_ROOT="/home/runner/.buildozer/android/platform/android-sdk"
-          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
-          cd "$ANDROID_SDK_ROOT/cmdline-tools"
-
-          # Download and extract the latest command line tools
-          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          mkdir -p latest
-          unzip sdk-tools.zip -d latest
-
-          # Accept licenses and install build tools and platforms
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "build-tools;34.0.0" "platforms;android-34"
-
-      - name: Install Buildozer and dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install buildozer cython
-
       - name: Build APK
-        run: |
-          buildozer android debug
+
+        uses: digreatbrian/buildozer-action@v2
+
+        with:
+
+          python-version: 3.11
+
+          buildozer-cmd: buildozer -v android debug
+
+
+
+      - name: Upload artifacts
+
+        uses: actions/upload-artifact@v4
+
+        with:
+
+          name: package
+
+          path: ./bin/*.apk
